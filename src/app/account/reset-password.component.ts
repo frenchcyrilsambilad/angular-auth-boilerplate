@@ -15,7 +15,7 @@ enum TokenStatus {
 @Component({ templateUrl: 'reset-password.component.html', standalone: false })
 export class ResetPasswordComponent implements OnInit {
     TokenStatus = TokenStatus;
-    tokenStatus = TokenStatus.Validating;
+    tokenStatus = TokenStatus.Invalid;
     token?: string;
     form!: FormGroup;
     loading = false;
@@ -43,6 +43,8 @@ export class ResetPasswordComponent implements OnInit {
             this.tokenStatus = TokenStatus.Invalid;
             return;
         }
+
+        this.tokenStatus = TokenStatus.Validating;
 
         this.accountService.validateResetToken(token)
             .pipe(first(), timeout(10000))
