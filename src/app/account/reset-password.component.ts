@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first, timeout } from 'rxjs/operators';
@@ -26,7 +26,8 @@ export class ResetPasswordComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private accountService: AccountService,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private cdr: ChangeDetectorRef
     ) { }
 
     ngOnInit() {
@@ -45,13 +46,23 @@ export class ResetPasswordComponent implements OnInit {
         }
 
         this.tokenStatus = TokenStatus.Validating;
+        this.cdr.detectChanges();
+
+        const validationTimeout = window.setTimeout(() => {
+            if (this.tokenStatus === TokenStatus.Validating) {
+                this.tokenStatus = TokenStatus.Invalid;
+                this.cdr.detectChanges();
+            }
+        }, 10000);
 
         this.accountService.validateResetToken(token)
             .pipe(first(), timeout(10000))
             .subscribe({
                 next: () => {
+                    window.clearTimeout(validationTimeout);
                     this.token = token;
                     this.tokenStatus = TokenStatus.Valid;
+                    this.cdr.detectChanges();
 
                     // remove token from url after validation to prevent http referer leakage
                     this.router.navigate([], {
@@ -61,7 +72,9 @@ export class ResetPasswordComponent implements OnInit {
                     });
                 },
                 error: () => {
+                    window.clearTimeout(validationTimeout);
                     this.tokenStatus = TokenStatus.Invalid;
+                    this.cdr.detectChanges();
                 }
             });
     }
